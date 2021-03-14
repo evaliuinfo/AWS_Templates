@@ -41,7 +41,6 @@ Parameters:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
     Type: 'AWS::EC2::KeyPair::KeyName'
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
-    Default: web_app_test
   RootVolumeType:
     Description: The root volume type.
     Type: String
@@ -76,13 +75,12 @@ Parameters:
     Description: EC2 instance subnet ID
     Type: String
     ConstraintDescription: must be the name of an existing VPC Subnets.
-    Default: subnet-095752633361e741b
   SecurityGroupsId:
     Description: Security Groups ID lists, can be the max of 4 IDs, combined with comma. 
       eg "sg-xxxxxx,sg-xxxxxx,sg-xxxxxx,sg-xxxxxx"
     Type: String
     ConstraintDescription: must be the list of IDs belonging to current Security Groups.
-    Default: 'sg-073867bb546deeae5,NONE,NONE,NONE'
+    Default: 'NONE,NONE,NONE,NONE'
   SSHLocation:
     Description: The IP address range that can be used to SSH to the EC2 instances
     Type: String
@@ -93,7 +91,6 @@ Parameters:
   IamInstanceProfile:
     Description: The name or Amazon Resource Name (ARN) of an IAM instance profile.
     Type: String
-    Default: ec2_iam_debug_demo
   InstanceInitiatedShutdownBehavior:
     Description: Indicates whether an instance stops or terminates when you initiate shutdown 
       from the instance (using the operating system command for system shutdown).
