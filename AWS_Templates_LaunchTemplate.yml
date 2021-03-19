@@ -1,0 +1,203 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Sample Template Sample template to create Launch Template
+
+Parameters:
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t2.small
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  RootVolumeType:
+    Description: The root volume type.
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+      - io1
+      - io2
+      - standard
+  RootVolumeSize:
+    Description: The root volume size. The volume range for gp2 and gp3 is 1-16384, 
+      for io1 and io2 is 4-16,384, and for standard is 1-1,024
+    Type: String
+    Default: 20
+  EBSVolumeType:
+    Description: The EBS volume type.
+    Type: String
+    Default: gp2
+    AllowedValues:
+      - gp2
+      - gp3
+      - io1
+      - io2
+      - standard
+  EBSVolumeSize:
+    Description: The EBS volume size. The volume range for gp2 and gp3 is 1-16384, 
+      for io1 and io2 is 4-16,384, and for standard is 1-1,024
+    Type: String
+    Default: 40
+  SecurityGroupsId:
+    Description: Security Groups ID lists, can be the max of 4 IDs, combined with comma. 
+      eg "sg-xxxxxx,sg-xxxxxx,sg-xxxxxx,sg-xxxxxx"
+    Type: String
+    ConstraintDescription: must be the list of IDs belonging to current Security Groups.
+    Default: 'NONE,NONE,NONE,NONE'
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+  AMIImageId:
+    Description: The ID of the AMI.
+    Type: String
+  IamInstanceProfileName:
+    Description: The name of an IAM instance profile.
+    Type: String
+  InstanceInitiatedShutdownBehavior:
+    Description: Indicates whether an instance stops or terminates when you initiate shutdown 
+      from the instance (using the operating system command for system shutdown).
+    Type: String
+    Default: stop
+    AllowedValues: 
+      - stop
+      - terminate
+    ConstraintDescription: must be one of the allowed values.
+  UserData:
+    Description: The Base64-encoded user data to make available to the instance.
+    Type: String
+
+Conditions:
+  UseDefaultSecurityGroups: !Equals
+    - !Select [ 0, !Split [',', !Ref SecurityGroupsId]]
+    - 'NONE'
+  UseProvidedSecurityGroups: !Not 
+    - !Equals
+      - !Select [ 0, !Split [',', !Ref SecurityGroupsId]]
+      - 'NONE'
+  UseSecondSecurityGroups: !Not
+    - !Equals
+      - !Select [ 1, !Split [',', !Ref SecurityGroupsId]]
+      - 'NONE'
+  UseThirdSecurityGroups: !Not
+    - !Equals
+      - !Select [ 2, !Split [',', !Ref SecurityGroupsId]]
+      - 'NONE'
+  UseFourthSecurityGroups: !Not
+    - !Equals
+      - !Select [ 3, !Split [',', !Ref SecurityGroupsId]]
+      - 'NONE'
+
+Resources:
+  EC2LaunchTemplate:
+    Type: 'AWS::EC2::LaunchTemplate'
+    Properties:
+      LaunchTemplateName: MyLaunchTemplate
+      LaunchTemplateData:
+        DisableApiTermination: true
+        ImageId: !Ref AMIImageId
+        InstanceType: !Ref InstanceType
+        IamInstanceProfile: 
+          Name: !Ref IamInstanceProfileName
+        InstanceInitiatedShutdownBehavior: !Ref InstanceInitiatedShutdownBehavior
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeType: !Ref RootVolumeType
+              VolumeSize: !Ref RootVolumeSize
+              DeleteOnTermination: false
+              Encrypted: true
+          - DeviceName: /dev/xvdf
+            Ebs:
+              VolumeType: !Ref EBSVolumeType
+              VolumeSize: !Ref EBSVolumeSize
+              DeleteOnTermination: false
+              Encrypted: true
+        SecurityGroupIds: 
+          - !If 
+            - UseProvidedSecurityGroups
+            - !Select [ 0, !Split [',', !Ref SecurityGroupsId]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - UseSecondSecurityGroups
+            - !Select [ 1, !Split [',', !Ref SecurityGroupsId]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - UseThirdSecurityGroups
+            - !Select [ 2, !Split [',', !Ref SecurityGroupsId]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - UseFourthSecurityGroups
+            - !Select [ 3, !Split [',', !Ref SecurityGroupsId]]
+            - !Ref "AWS::NoValue"
+        SecurityGroups: 
+          - !If
+            - UseDefaultSecurityGroups
+            - !Ref InstanceSecurityGroup
+            - !Ref "AWS::NoValue"
+        KeyName: !Ref KeyName
+        UserData: 
+          Fn::Base64: !Ref UserData
+      TagSpecifications:
+        - ResourceType: instance 
+          Tags:
+            - Key: SERVICE_CREATOR
+              Value: eliu
+            - Key: SERVICE_CATEGORY
+              Value: INFRA
+      
+  InstanceSecurityGroup:
+    Condition: UseDefaultSecurityGroups
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable SSH access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+      Tags:
+        - Key: SERVICE_CREATOR
+          Value: eliu
+        - Key: SERVICE_CATEGORY
+          Value: INFRA
+
+Outputs:
+  LaunchTemplate:
+    Description: InstanceId of the newly created EC2 instance
+    Value: !Ref EC2LaunchTemplate
+  InstanceSecurityGroups:
+    Condition: UseDefaultSecurityGroups
+    Description: Security Groups of the newly created EC2 instance
+    Value: !Ref InstanceSecurityGroup
