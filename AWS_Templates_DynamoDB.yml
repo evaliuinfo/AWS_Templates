@@ -7,6 +7,9 @@ Description: >-
   stack from this template.
 
 Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed
+    Type: String
   BillingMode:
     Description: Specify how you are charged for read and write throughput and how you manage capacity.
       PROVISIONED - PROVISIONED sets the billing mode to Provisioned Mode. PAY_PER_REQUEST - We recommend 
@@ -87,7 +90,7 @@ Resources:
   DynamoDBTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
-      TableName: !Sub 'aws-infra-${TableDescriptor}'
+      TableName: !Sub '${EnvironmentName}-${TableDescriptor}'
       BillingMode: !Ref BillingMode
       AttributeDefinitions:
         - AttributeName: !Ref HashKeyElementName
@@ -122,7 +125,9 @@ Resources:
         - Key: SERVICE_CREATOR
           Value: eliu
         - Key: SERVICE_CATEGORY
-          Value: INFRA
+          Value: APP
+        - Key: SERVICE_ENV
+          Value: !Ref EnvironmentName
 
 Outputs:
   TableName:
