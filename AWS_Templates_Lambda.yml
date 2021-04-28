@@ -1,0 +1,230 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Sample Template Lambda Function, This template demonstrates
+  the creation of a Lambda Function.  **WARNING** This template creates an Amazon
+  Lambda. You will be billed for the AWS resources used if you create a
+  stack from this template.
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed
+    Type: String
+  LambdaDescriptor:
+    Description: Lambda Function name descriptor
+    Type: String
+    AllowedPattern: '[a-zA-Z0-9]*'
+  LambdaDescription:
+    Description: Lambda Function description
+    Type: String
+    Default: 'NONE'
+    AllowedPattern: '[a-zA-Z0-9]*'
+  EnvironmentVariables:
+    Description: Environment variables that are accessible from
+      function code during execution.
+    Type: String
+    Default: "NONE,NONE,NONE,NONE,NONE"
+  Handler:
+    Description: The name of the method within your code that Lambda calls to execute your function. The format includes the file name. It can also include namespaces and other qualifiers, depending on the runtime.
+    Type: String
+    Default: 'NONE'
+  KmsKeyArn:
+    Description: The ARN of the AWS Key Management Service (AWS KMS) key that's used to encrypt your function's environment variables. If it's not provided, AWS Lambda uses a default service key.
+    Type: String
+    Default: 'NONE'
+  MemorySize:
+    Description: The amount of memory available to the function at runtime. Increasing the function memory also increases its CPU allocation. The default value is 128 MB. The value can be any multiple of 1 MB.
+    Type: Number
+    Default: 128
+  PackageType:
+    Description: The type of deployment package. Set to Image for container image and set Zip for .zip file archive.
+    Type: String
+    Default: Zip
+    AllowedValue:
+      - Image
+      - Zip
+  ReservedConcurrentExecutions:
+    Description: The number of simultaneous executions to reserve for the function.
+    Type: Number
+    Default: 0
+  Role:
+    Description: The Amazon Resource Name (ARN) of the function's execution role.
+    Type: String
+  Runtime:
+    Description: The identifier of the function's runtime.
+    Type: String
+    Default: python3.7
+    AllowedValue:
+      - dotnetcore1.0
+      - dotnetcore2.0
+      - dotnetcore2.1
+      - dotnetcore3.1
+      - java8
+      - java8.al2
+      - java11
+      - nodejs
+      - nodejs10.x
+      - nodejs12.x
+      - nodejs14.x
+      - nodejs4.3
+      - nodejs4.3-edge
+      - nodejs6.10
+      - nodejs8.10
+      - python2.7
+      - python3.6
+      - python3.7
+      - python3.8
+      - ruby2.5
+      - ruby2.7
+  Timeout:
+    Description: The amount of time that Lambda allows a function to run before stopping it. The default is 3 seconds. The maximum allowed value is 900 seconds. 
+    Type: Number
+    Default: 300
+  LambdaSecurityGroupIds:
+    Description: A list of VPC security groups IDs.
+    Type: String
+    Default: "NONE,NONE,NONE,NONE"
+  LambdaSubnetIds:
+    Description: A list of VPC subnet IDs.
+    Type: String
+    Default: "NONE,NONE,NONE,NONE"
+
+Conditions:
+  UseKmsKey: !Not
+    - !Equals
+      - !Ref KmsKeyArn
+      - NONE
+  AssignFirstSecurityGroup: !Not
+    - !Equals
+      - !Select
+        - 0
+        - !Split
+          - ','
+          - !Ref LambdaSecurityGroupIds
+      - NONE
+  AssignSecondSecurityGroup: !Not
+    - !Equals
+      - !Select
+        - 1
+        - !Split
+          - ','
+          - !Ref LambdaSecurityGroupIds
+      - NONE
+  AssignThirdSecurityGroup: !Not
+    - !Equals
+      - !Select
+        - 2
+        - !Splict 
+          - ','
+          - !Ref LambdaSecurityGroupIds
+      - NONE
+  AssignFourthSecurityGroup: !Not
+    - !Equals
+      - !Select
+        - 3
+        - !Splict 
+          - ','
+          - !Ref LambdaSecurityGroupIds
+      - NONE
+  AssignFirstSubnet: !Not
+    - !Equals
+      - !Select
+        - 0
+        - !Splict 
+          - ','
+          - !Ref LambdaSubnetIds
+      - NONE
+  AssignSecondSubnet: !Not
+    - !Equals
+      - !Select
+        - 1
+        - !Splict
+          - ','
+          - !Ref LambdaSubnetIds
+      - NONE
+  AssignThirdSubnet: !Not
+    - !Equals
+      - !Select
+        - 2
+        - !Splict
+          - ','
+          - !Ref LambdaSubnetIds
+      - NONE
+  AssignFourthSubnet: !Not
+    - !Equals
+      - !Select
+        - 3
+        - !Splict
+          - ','
+          - !Ref LambdaSubnetIds
+      - NONE
+
+Resources:
+  LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: !Sub '${EnvironmentName}-${LambdaDescriptor}'
+      Description: !Ref LambdaDescription
+      Environment:
+        Variables:
+      Handler: !Ref Handler
+      KmsKeyArn: !If
+        - UseKmsKey
+        - !Ref KmsKeyArn
+        - !Ref "AWS::NoValue"
+      MemorySize: !Ref MemorySize
+      PackageType: !Ref PackageType
+      ReservedConcurrentExecutions: !Ref ReservedConcurrentExecutions
+      Role: !Ref Role
+      Runtime: !Ref Runtime
+      Timeout: !Ref Timeout
+      VpcConfig:
+        SecurityGroupIds:
+          - !If
+            - AssignFirstSecurityGroup
+            - !Select [0, [!Split [',', !Ref LambdaSecurityGroupIds]]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - AssignSecondSecurityGroup
+            - !Select [1, [!Split [',', !Ref LambdaSecurityGroupIds]]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - AssignThirdSecurityGroup
+            - !Select [2, [!Split [',', !Ref LambdaSecurityGroupIds]]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - AssignFourthSecurityGroup
+            - !Select [3, [!Split [',', !Ref LambdaSecurityGroupIds]]]
+            - !Ref "AWS::NoValue"
+        SubnetIds:
+          - !If
+            - AssignFirstSubnet
+            - !Select [0, [!Split [',', !Ref LambdaSubnetIds]]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - AssignSecondSubnet
+            - !Select [1, [!Split [',', !Ref LambdaSubnetIds]]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - AssignThirdSubnet
+            - !Select [2, [!Split [',', !Ref LambdaSubnetIds]]]
+            - !Ref "AWS::NoValue"
+          - !If
+            - AssignFourthSubnet
+            - !Select [3, [!Split [',', !Ref LambdaSubnetIds]]]
+            - !Ref "AWS::NoValue"
+      Tags:
+        - Key: SERVICE_CREATOR
+          Value: eliu
+        - Key: SERVICE_CATEGORY
+          Value: APP
+        - Key: SERVICE_ENV
+          Value: !Ref EnvironmentName
+
+Outputs:
+  LambdaName:
+    Value: !Ref LambdaFunction
+    Description: Function name of the newly created Lambda
+  LambdaArn:
+    Value: !GetAtt LambdaFunction.Arn
+    Description: Function name of the newly created Lambda
