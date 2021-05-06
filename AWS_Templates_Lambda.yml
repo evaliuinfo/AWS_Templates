@@ -10,6 +10,16 @@ Parameters:
   EnvironmentName:
     Description: An environment name that will be prefixed
     Type: String
+  S3Bucket:
+    Description: An Amazon S3 bucket in the same AWS Region as your function. The bucket can be in a different AWS account.
+    Type: String
+  S3PrefixKey:
+    Description: The Amazon S3 key of the deployment package.
+    Type: String
+  S3ObjectVersion:
+    Description: For versioned objects, the version of the deployment package object to use.
+    Type: String
+    Default: 'NONE'
   LambdaDescriptor:
     Description: Lambda Function name descriptor
     Type: String
@@ -22,8 +32,10 @@ Parameters:
   EnvironmentVariables:
     Description: Environment variables that are accessible from
       function code during execution.
+      Please use key-value pair for each environment variable,
+      eg, LOG_LEVEL=debug,TIME_OUT=30,NONE,NONE
     Type: String
-    Default: "NONE,NONE,NONE,NONE,NONE"
+    Default: "NONE,NONE,NONE,NONE"
   Handler:
     Description: The name of the method within your code that Lambda calls to execute your function. The format includes the file name. It can also include namespaces and other qualifiers, depending on the runtime.
     Type: String
@@ -90,9 +102,53 @@ Parameters:
     Default: "NONE,NONE,NONE,NONE"
 
 Conditions:
+  UseS3Versioning: !Not
+    - !Equals
+    - !Ref S3ObjectVersion
+      - NONE
   UseKmsKey: !Not
     - !Equals
       - !Ref KmsKeyArn
+      - NONE
+  AssignEnvVar: !Not
+    - !Equals
+      - !Select
+        - 0
+        - !Split
+          - ','
+          - !Ref EnvironmentVariables
+      - NONE
+  AssignFirstEnvVar: !Not
+    - !Equals
+      - !Select
+        - 0
+        - !Split
+          - ','
+          - !Ref EnvironmentVariables
+      - NONE
+  AssignSecondEnvVar: !Not
+    - !Equals
+      - !Select
+        - 1
+        - !Split
+          - ','
+          - !Ref EnvironmentVariables
+      - NONE
+  AssignThirdEnvVar: !Not
+    - !Equals
+      - !Select
+        - 2
+        - !Split
+          - ','
+          - !Ref EnvironmentVariables
+      - NONE
+  AssignFourthEnvVar: !Not
+    - !Equals
+      - !Select
+        - 3
+        - !Split
+          - ','
+          - !Ref EnvironmentVariables
       - NONE
   AssignFirstSecurityGroup: !Not
     - !Equals
@@ -165,8 +221,33 @@ Resources:
     Properties:
       FunctionName: !Sub '${EnvironmentName}-${LambdaDescriptor}'
       Description: !Ref LambdaDescription
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3PrefixKey
+        S3ObjectVersion: !If
+          - UseS3Versioning
+          - !Ref S3ObjectVersion
+          - !Ref "AWS::NoValue"
       Environment:
-        Variables:
+        Variables: !If
+          - AssignEnvVar
+          - ENV_VAR1: !If
+              - AssignFirstEnvVar
+              - !Select [0, [!Split [',', !Ref EnvironmentVariables]]]
+              - !Ref "AWS::NoValue"
+            ENV_VAR2: !If
+              - AssignSecondEnvVar
+              - !Select [1, [!Split [',', !Ref EnvironmentVariables]]]
+              - !Ref "AWS::NoValue"
+            ENV_VAR3: !If
+              - AssignThirdEnvVar
+              - !Select [2, [!Split [',', !Ref EnvironmentVariables]]]
+              - !Ref "AWS::NoValue"
+            ENV_VAR4: !If
+              - AssignFourthEnvVar
+              - !Select [3, [!Split [',', !Ref EnvironmentVariables]]]
+              - !Ref "AWS::NoValue"
+          - !Ref "AWS::NoValue"
       Handler: !Ref Handler
       KmsKeyArn: !If
         - UseKmsKey
