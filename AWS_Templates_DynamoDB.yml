@@ -95,23 +95,24 @@ Resources:
       AttributeDefinitions:
         - AttributeName: !Ref HashKeyElementName
           AttributeType: !Ref HashKeyElementType
-        - AttributeName: !If 
-            - NeedSecondKey
-            - !Ref SecondAttributeName
-            - !Ref "AWS::NoValue"
-          AttributeType: !If
-            - NeedSecondKey
-            - !Ref SecondAttributeType
-            - !Ref "AWS::NoValue"
+        - !If 
+          - NeedSecondKey
+          - AttributeName: !Ref SecondAttributeName
+          - !Ref "AWS::NoValue"
+        - !If
+          - NeedSecondKey
+          - AttributeType: !Ref SecondAttributeType
+          - !Ref "AWS::NoValue"
       KeySchema:
         - AttributeName: !Ref HashKeyElementName
           KeyType: HASH
-        - AttributeName: !If 
-            - NeedSecondKey
-            - !Ref SecondAttributeName
-            - !Ref "AWS::NoValue"
-          KeyType: RANGE
-      PointInTimeRecoveryEnabled: !Ref PointInTimeRecoveryEnabled
+        - !If
+          - NeedSecondKey
+          - AttributeName: !Ref SecondAttributeName
+            KeyType: RANGE
+          - !Ref "AWS::NoValue"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !Ref PointInTimeRecoveryEnabled
       ProvisionedThroughput:
         ReadCapacityUnits: !If
           - ProvisionedTable
